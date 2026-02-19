@@ -1,0 +1,36 @@
+---
+- name: Inventory for Ansible
+  hosts: all
+  become: true
+  pre_tasks:
+
+    - name: Install updates for fedora
+      ansible.builtin.dnf:
+        update_only: true
+        update_cache: true
+      when: ansible_distribution == "Fedora"
+
+    - name: Install updates for Ubuntu
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: true
+      when: ansible_distribution == "Ubuntu"
+
+- hosts: web_servers
+  become: true
+  tasks:
+    - name: install apache on webservers
+      ansible.builtin.apt:
+        name:
+          - apache2
+          - lipapache2-mod-php
+      when: ansible_distibution == "Ubuntu"
+
+- hosts: db_servers
+  become: true
+  tasks:
+    - name: install mariadb package on db_servers
+      ansible.builtin.dnf:
+        name: maiadb
+        state: latest
+      when: ansible_distribution == "Fedora"
