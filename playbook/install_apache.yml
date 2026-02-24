@@ -1,0 +1,20 @@
+---
+- name: Installer Apache2 på alle maskiner
+  hosts: all
+  become: true
+  vars:
+    apache_package: "apache2"
+    php_package: "php"
+
+  tasks:
+    - name: Install apache2 package
+      ansible.builtin.package:
+        name: # No dash before 'name'
+          - "{{ apache_package }}"
+          - "{{ php_package }}"
+        state: present
+        update_cache: true
+
+    - name: Debug info
+      ansible.builtin.debug:
+        msg: "Hello World!"

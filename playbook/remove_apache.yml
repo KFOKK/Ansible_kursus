@@ -1,0 +1,26 @@
+---
+- name: Remove Apache2 på alle maskiner
+  hosts: all
+  become: true
+  tasks:
+    - name: Remove apache2
+      ansible.builtin.apt:
+        name: # No dash before 'name'
+          - apache2
+          - libapache2-mod-php
+        state: absent
+        update_cache: true
+      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "24"
+
+    - name: Remove httpd
+      ansible.builtin.dnf: # Good practice to use the fully qualified name
+        name: # No dash before 'name'
+          - httpd
+          - php
+        state: absent
+        update_cache: true
+      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "9"
+
+    - name: Debug info
+      ansible.builtin.debug:
+        msg: "Hello World!"
