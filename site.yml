@@ -4,31 +4,80 @@
   become: true
 
   pre_tasks:
-    - name: Install updates for Fedora
-      tags: always
-      ansible.builtin.dnf:
-        update_only: true
-        update_cache: true
-      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
+    # - name: Install updates for RHEL
+    #   tags: always
+    #   ansible.builtin.dnf:
+    #     update_only: true
+    #     update_cache: true
+    #   when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "9"
 
-    - name: Install updates for Ubuntu
-      tags: always
-      ansible.builtin.apt:
-        upgrade: dist
-        update_cache: true
-      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "24"
+    # - name: Install updates for Ubuntu
+    #   tags: always
+    #   ansible.builtin.apt:
+    #     upgrade: dist
+    #     update_cache: true
+    #   when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "24"
 
   tasks:
-    - name: Install apache on webservers
-      tags: apache,ubuntu
+    - name: Install Apache on web servers (Ubuntu)
+      tags: apache, ubuntu
       ansible.builtin.apt:
         name:
           - apache2
           - libapache2-mod-php
+        state: present  # Tilføjet for at sikre, at pakkerne er installeret
       when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "24"
 
-    - name: Install mariadb package on db_servers
-      tags: db,Fedora
+    - name: Install Apache on web servers (RHEL)
+      tags: apache, rhel
+      ansible.builtin.dnf:
+        name: httpd
+        state: present  # Tilføjet for at sikre, at pakken er installeret
+      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "9"
+
+    - name: Ensure Apache is running (Ubuntu)
+      tags: apache, ubuntu
+      ansible.builtin.service:
+        name: apache2
+        state: started
+      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "24"
+
+    - name: Ensure Apache is running (RHEL)
+      tags: apache, rhel
+      ansible.builtin.service:
+        name: httpd
+        state: started
+      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "9"
+
+    - name: Change ServerAdmin email address for Apache (RHEL)
+      tags: apache, rhel
+      ansible.builtin.replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^ServerAdmin\s+.*$'
+        replace: 'ServerAdmin somebody@somewhere.net'  # Rettet email format
+      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "9"
+      register: httpd
+
+    - name: Restart httpd if configuration changed (RHEL)
+      tags: apache, rhel
+      ansible.builtin.service:
+        name: httpd
+        state: restarted
+      when: httpd.changed
+
+    - name: Copy HTML file for site (Ubuntu)
+      tags: apache, ubuntu
+      ansible.builtin.copy:
+        src: default_site.html
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+      when: ansible_facts['distribution'] == "Ubuntu" and ansible_facts['distribution_major_version'] == "24"
+
+    - name: Install MariaDB package on DB servers (RHEL)
+      tags: db, rhel  # Opdateret tag fra fedora til rhel
       ansible.builtin.dnf:
         name: mariadb
-      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "7"
+        state: present  # Tilføjet for at sikre, at pakken er installeret
+      when: ansible_facts['distribution'] == "RedHat" and ansible_facts['distribution_major_version'] == "9"
